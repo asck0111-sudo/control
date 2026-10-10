@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de proyectos OOCC | Entel Perú</title>
+    <!-- Tailwind CSS & FontAwesome para iconos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tipografía Barlow -->
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Barlow', 'sans-serif'],
+                    },
+                    colors: {
+                        entelBlue: '#002EFF', 
+                        entelOrange: '#FF4500',
+                        entelCyan: '#00A499',
+                        entelLight: '#F4F7F9'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-entelLight font-sans text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Corporativo (Sin Logotipo) -->
+    <header class="bg-entelBlue text-white shadow-md border-b-4 border-entelOrange">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Control de proyectos OOCC</h1>
+                    <p class="text-xs text-slate-200">Control y Seguimiento de Procesos - Entel Perú</p>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0 flex flex-wrap items-center gap-2">
+                <button onclick="openAddModal()" class="bg-entelOrange hover:bg-orange-600 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nuevo Sitio</span>
+                </button>
+                <button onclick="openAddCatalogModal('proveedor')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-truck-field"></i>
+                    <span>+ Proveedor</span>
+                </button>
+                <button onclick="openManageProjectsModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow transition flex items-center space-x-1.5" title="Gestionar y editar proyectos">
+                    <i class="fa-solid fa-folder-gear"></i>
+                    <span>Proyectos</span>
+                </button>
+                <button onclick="openAddCatalogModal('estudioFilter')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>+ Estatus</span>
+                </button>
+                <button onclick="resetData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2.5 py-2 rounded-lg transition" title="Restaurar datos originales">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto px-6 py-8 flex-grow w-full">
+
+        <!-- KPIs / Resumen General -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-entelBlue">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Sitios</p>
+                <h3 id="kpi-total" class="text-3xl font-bold text-entelBlue mt-2">0</h3>
+                <span class="text-xs text-slate-400 mt-1 block">Monitoreados en plataforma</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-amber-500">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">POR EJECUTAR</p>
+                <h3 id="kpi-requieren" class="text-3xl font-bold text-amber-600 mt-2">0</h3>
+                <span class="text-xs text-slate-400 mt-1 block">pendiente de ejecución</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-entelCyan">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">En proceso</p>
+                <h3 id="kpi-proceso" class="text-3xl font-bold text-entelCyan mt-2">0</h3>
+                <span class="text-xs text-slate-400 mt-1 block">En ejecución actual</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ejecutado</p>
+                <h3 id="kpi-ejecutado" class="text-3xl font-bold text-emerald-600 mt-2">0</h3>
+                <span class="text-xs text-slate-400 mt-1 block">Culminados con éxito</span>
+            </div>
+        </div>
+
+        <!-- Sección de Búsqueda y Selección -->
+        <div class="bg-white p-6 rounded-xl shadow-sm mb-8 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Buscar Sitio</label>
+                <input type="text" id="searchInput" placeholder="Ej. Curie, Faucett..." 
+                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Procesos</label>
+                <select id="procesoFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm bg-white">
+                    <option value="">Seleccionar procesos</option>
+                    <option value="Evaluación estructural">Evaluación estructural</option>
+                    <option value="Reforzamiento de edificaciones y torres">Reforzamiento de edificaciones...</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Proyecto</label>
+                <select id="proyectoFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm bg-white">
+                    <option value="">Seleccionar proyecto</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Proveedor</label>
+                <select id="providerFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm bg-white">
+                    <option value="">Seleccionar proveedor</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estatus del proceso</label>
+                <select id="estudioFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm bg-white">
+                    <option value="">Seleccionar estatus</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estatus actual</label>
+                <select id="statusFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-entelBlue text-sm bg-white">
+                    <option value="">Seleccionar estatus</option>
+                    <option value="N/A (No requiere)">N/A (No requiere)</option>
+                    <option value="Por ejecutar">Por ejecutar</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Ejecutado">Ejecutado</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabla de Datos con Scroll Horizontal Fluido -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto w-full pb-2">
+                <table class="w-full text-left border-collapse min-w-[1200px]" id="sitiosTable">
+                    <thead>
+                        <tr class="bg-entelBlue text-white text-[10px] uppercase tracking-wider">
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">N°</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Código de Sitio</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Procesos</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Proyecto</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Coord. de proyecto</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Proveedor</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Estatus del proceso</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Actividades a ejecutar</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Fecha de SF</th>
+                            <th class="py-2.5 px-3 font-semibold whitespace-nowrap">Estatus actual</th>
+                            <th class="py-2.5 px-3 font-semibold text-center whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 text-[10px]" id="tableBody">
+                        <!-- Generado Dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
+                <span id="showingCount">Mostrando registros</span>
+                <span>Entel Perú - Control y Seguimiento de Procesos</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal para Agregar / Editar Sitio -->
+    <div id="addModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border-t-4 border-entelBlue">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-entelBlue">Agregar Nuevo Sitio de Evaluación</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="addForm" onsubmit="saveSite(event)" class="space-y-4">
+                <input type="hidden" id="editSiteId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Código de Sitio</label>
+                        <input type="text" id="newSitio" required placeholder="Ej. 0139999_LM_Nuevo_Sitio" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Procesos</label>
+                        <select id="newProceso" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                            <option value="Evaluación estructural">Evaluación estructural</option>
+                            <option value="Reforzamiento de edificaciones y torres">Reforzamiento de edificaciones y torres</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Proyecto</label>
+                    <select id="newProyecto" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Coord. de proyecto</label>
+                        <input type="text" id="newCoordEstudio" value="Gloria Perez" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Proveedor Asignado</label>
+                        <select id="newProveedor" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                            <!-- Opciones dinámicas -->
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estatus del proceso</label>
+                        <select id="newEstatusEstudio" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                            <!-- Opciones dinámicas -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Actividades a ejecutar (separadas por coma o línea)</label>
+                        <textarea id="newTipoReforzamiento" rows="2" placeholder="Ej. REFORZAMIENTO DE CIMENTACION, REFORZAMIENTO TORRE HASTA 15M" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">N/A (No requiere)</textarea>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha de SF</label>
+                        <input type="date" id="newFechaSF" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estatus actual</label>
+                        <select id="newStatusFecha" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                            <option value="N/A (No requiere)">N/A (No requiere)</option>
+                            <option value="Por ejecutar">Por ejecutar</option>
+                            <option value="En proceso">En proceso</option>
+                            <option value="Ejecutado">Ejecutado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg">Cancelar</button>
+                    <button type="submit" id="submitBtn" class="px-4 py-2 bg-entelBlue hover:bg-blue-700 text-white text-xs font-semibold rounded-lg">Guardar Sitio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Genérico para Catálogos -->
+    <div id="catalogModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-entelBlue">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="catalogModalTitle" class="text-base font-bold text-entelBlue">Agregar Nuevo Elemento</h3>
+                <button onclick="closeCatalogModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="catalogForm" onsubmit="saveCatalogItem(event)" class="space-y-4">
+                <div>
+                    <label id="catalogLabelName" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nombre</label>
+                    <input type="text" id="catalogInputVal" required placeholder="Escribir aquí..." class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeCatalogModal()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-3 py-2 bg-entelBlue hover:bg-blue-700 text-white text-xs font-semibold rounded-lg">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Gestionar / Editar / Eliminar Proyectos -->
+    <div id="projectsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border-t-4 border-entelBlue">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-entelBlue">Gestión de Proyectos</h3>
+                <button onclick="closeManageProjectsModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="newProjectInput" placeholder="Nuevo nombre de proyecto..." class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-entelBlue focus:outline-none">
+                    <button onclick="addNewProjectFromModal()" class="bg-entelBlue hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shrink-0">Agregar</button>
+                </div>
+                <div class="border-t pt-3">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Proyectos Existentes</label>
+                    <div id="projectsListContainer" class="max-h-60 overflow-y-auto space-y-2 pr-1">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end pt-4 border-t mt-4">
+                <button type="button" onclick="closeManageProjectsModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-entelBlue text-slate-300 py-6 text-center text-xs mt-12 border-t border-blue-800">
+        <p>&copy; 2026 Entel Perú S.A. Todos los derechos reservados. Control y Seguimiento de Procesos.</p>
+    </footer>
+
+    <!-- Lógica de la Aplicación -->
+    <script>
+        const initialData = [
+            {id: 1, sitio: "0130008_LM_Carmen", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 35M"], statusFecha: "Ejecutado"},
+            {id: 2, sitio: "0130017_LM_Plaza_San_Miguel", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 3, sitio: "0130069_LM_Fernandini", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO DE CIMENTACION", "REFORZAMIENTO TORRE HASTA 15M"], statusFecha: "En proceso"},
+            {id: 4, sitio: "0130071_LM_Las_Lilas", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 5, sitio: "0130179_LM_Clinica_Italiana", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO DE EDIFICACIÓN"], statusFecha: "Por ejecutar"},
+            {id: 6, sitio: "0130188_LM_Huachipa", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 7, sitio: "0130268_LM_Tallanes", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 8, sitio: "0130302_LM_Comercial_Surquillo", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 9, sitio: "0130383_LM_Puerto_Supe", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 10, sitio: "0130397_LM_Punta_Corrientes", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 11, sitio: "0130503_LM_Mun_Los_Olivos", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 12, sitio: "0130054_LM_Curie", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 13, sitio: "0130058_LM_Faucett", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 14, sitio: "0130136_LM_Bolivia", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 15, sitio: "0130146_LM_Intihuatana", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 55M"], statusFecha: "En proceso"},
+            {id: 16, sitio: "0130169_LM_Canta_Callao", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 15M"], statusFecha: "Por ejecutar"},
+            {id: 17, sitio: "0130495_LM_Suche", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 18, sitio: "0130081_LM_Santa_Maria", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "INCOBECH", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 19, sitio: "0130049_LM_Cantogrande", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO DE CIMENTACION"], statusFecha: "Ejecutado"},
+            {id: 20, sitio: "0130088_LM_Santa_Catalina", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 21, sitio: "0130095_LM_Bella_Union", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE MAYOR 55M"], statusFecha: "Ejecutado"},
+            {id: 22, sitio: "0130102_LM_Sinchi_Roca", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO DE EDIFICACIÓN"], statusFecha: "Por ejecutar"},
+            {id: 23, sitio: "0130130_LM_San_Borja_Norte", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 24, sitio: "0130135_LM_Garcia_y_Garcia", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 25, sitio: "0130180_LM_Las_Vegas", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 35M"], statusFecha: "Por ejecutar"},
+            {id: 26, sitio: "0130412_LM_Melia", proceso: "Evaluación estructural", proyecto: "REGULARIZACIÓN DE LICENCIAS 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "ARISTOS", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 27, sitio: "0100909_AQ_Los_Rosales", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 35M"], statusFecha: "Por ejecutar"},
+            {id: 28, sitio: "0101620_JU_Sicaya", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "SAVA", estatusEstudio: "No requiere reforzamiento", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 29, sitio: "0100027_LM_San_Luis", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 30, sitio: "0100032_LM_Jorge_Chavez", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 31, sitio: "0100167_LM_Larco", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 32, sitio: "0100607_LI_Husares_de_Junin", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 33, sitio: "0100617_LI_Trujillo_Centro", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 34, sitio: "0100619_LI_Universidad_Nacion", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 35, sitio: "0101621_JU_La_Oroya", proceso: "Evaluación estructural", proyecto: "CRA 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "En evaluación", tipoReforzamiento: ["N/A (No requiere)"], statusFecha: "N/A (No requiere)"},
+            {id: 36, sitio: "0100613_LI_Chicama", proceso: "Evaluación estructural", proyecto: "ENTEL G2 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO DE CIMENTACION"], statusFecha: "Por ejecutar"},
+            {id: 37, sitio: "0101001_LA_Mocupe", proceso: "Evaluación estructural", proyecto: "ENTEL G2 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 55M"], statusFecha: "Por ejecutar"},
+            {id: 38, sitio: "0101002_LA_Reque", proceso: "Evaluación estructural", proyecto: "ENTEL G2 2026", coordEstudio: "Gloria Perez", fechaSF: "01/08/2026", proveedor: "TAE", estatusEstudio: "Requiere reforzamiento", tipoReforzamiento: ["REFORZAMIENTO TORRE HASTA 15M"], statusFecha: "Por ejecutar"}
+        ];
+
+        let sitiosData = JSON.parse(localStorage.getItem('entel_sitios_v26')) || initialData;
+        let proveedoresOpts = JSON.parse(localStorage.getItem('entel_proveedores_v26')) || ["Pendiente de asignación", "SAVA", "INCOBECH", "ARISTOS", "TAE"];
+        let proyectosOpts = JSON.parse(localStorage.getItem('entel_proyectos_v26')) || ["REGULARIZACIÓN DE LICENCIAS 2026", "CRA 2026", "ENTEL G2 2026"];
+        let estatusEstudioOpts = JSON.parse(localStorage.getItem('entel_estatusEstudio_v26')) || ["No requiere reforzamiento", "Requiere reforzamiento", "En evaluación"];
+
+        let currentCatalogType = '';
+
+        function saveToLocalStorage() {
+            localStorage.setItem('entel_sitios_v26', JSON.stringify(sitiosData));
+            localStorage.setItem('entel_proveedores_v26', JSON.stringify(proveedoresOpts));
+            localStorage.setItem('entel_proyectos_v26', JSON.stringify(proyectosOpts));
+            localStorage.setItem('entel_estatusEstudio_v26', JSON.stringify(estatusEstudioOpts));
+            updateKPIs();
+            populateSelects();
+        }
+
+        function populateSelects() {
+            const provFilter = document.getElementById('providerFilter');
+            const currentProvFilterVal = provFilter.value;
+            provFilter.innerHTML = '<option value="">Seleccionar proveedor</option>';
+            proveedoresOpts.forEach(p => {
+                provFilter.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+            provFilter.value = currentProvFilterVal;
+
+            const projFilter = document.getElementById('proyectoFilter');
+            const currentProjFilterVal = projFilter.value;
+            projFilter.innerHTML = '<option value="">Seleccionar proyecto</option>';
+            proyectosOpts.forEach(pr => {
+                projFilter.innerHTML += `<option value="${pr}">${pr}</option>`;
+            });
+            projFilter.value = currentProjFilterVal;
+
+            const estudioFilter = document.getElementById('estudioFilter');
+            const currentEstudioFilterVal = estudioFilter.value;
+            estudioFilter.innerHTML = '<option value="">Seleccionar estatus</option>';
+            estatusEstudioOpts.forEach(e => {
+                estudioFilter.innerHTML += `<option value="${e}">${e}</option>`;
+            });
+            estudioFilter.value = currentEstudioFilterVal;
+
+            const newProjSelect = document.getElementById('newProyecto');
+            newProjSelect.innerHTML = '';
+            proyectosOpts.forEach(pr => {
+                newProjSelect.innerHTML += `<option value="${pr}">${pr}</option>`;
+            });
+
+            const newProvSelect = document.getElementById('newProveedor');
+            newProvSelect.innerHTML = '';
+            proveedoresOpts.forEach(p => {
+                newProvSelect.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+
+            const newEstudioSelect = document.getElementById('newEstatusEstudio');
+            newEstudioSelect.innerHTML = '';
+            estatusEstudioOpts.forEach(e => {
+                newEstudioSelect.innerHTML += `<option value="${e}">${e}</option>`;
+            });
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpi-total').innerText = sitiosData.length;
+            document.getElementById('kpi-requieren').innerText = sitiosData.filter(s => s.statusFecha === "Por ejecutar").length;
+            document.getElementById('kpi-proceso').innerText = sitiosData.filter(s => s.statusFecha === "En proceso").length;
+            document.getElementById('kpi-ejecutado').innerText = sitiosData.filter(s => s.statusFecha === "Ejecutado").length;
+        }
+
+        function getStatusBadge(status) {
+            let colorClass = "bg-slate-100 text-slate-700 border-slate-200";
+            if (status === "Ejecutado") {
+                colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+            } else if (status === "En proceso") {
+                colorClass = "bg-teal-50 text-teal-700 border-teal-200";
+            } else if (status === "Por ejecutar" || (status && status.includes("Requiere"))) {
+                colorClass = "bg-amber-50 text-amber-700 border-amber-200";
+            } else if (status && (status.includes("evaluación") || status.includes("N/A"))) {
+                colorClass = "bg-slate-50 text-slate-600 border-slate-200";
+            }
+            return `<span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full border whitespace-nowrap inline-block ${colorClass}">${status}</span>`;
+        }
+
+        function getProcesoBadge(proceso) {
+            let colorClass = "bg-purple-50 text-purple-700 border-purple-200";
+            if (proceso === "Reforzamiento de edificaciones y torres") {
+                colorClass = "bg-rose-50 text-rose-700 border-rose-200";
+            } else if (proceso === "Mantenimiento") {
+                colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
+            }
+            return `<span class="px-2 py-0.5 text-[10px] font-semibold rounded-md border whitespace-nowrap inline-block ${colorClass}">${proceso || 'Evaluación estructural'}</span>`;
+        }
+
+        function getProviderBadge(proveedor) {
+            if (proveedor === "Pendiente de asignación") {
+                return `<span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full border bg-orange-50 text-orange-700 border-orange-200 whitespace-nowrap inline-block"><i class="fa-solid fa-clock mr-1"></i>${proveedor}</span>`;
+            }
+            return `<span class="text-slate-700 font-medium">${proveedor}</span>`;
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-slate-400">No se encontraron registros coincidentes</td></tr>`;
+                document.getElementById('showingCount').innerText = `Mostrando 0 de ${sitiosData.length} registros`;
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? "bg-white hover:bg-slate-50 transition-colors" : "bg-slate-50/50 hover:bg-slate-50 transition-colors";
+                
+                let actList = Array.isArray(item.tipoReforzamiento) ? item.tipoReforzamiento : [item.tipoReforzamiento || 'N/A (No requiere)'];
+                let actHtml = actList.map(act => {
+                    if (act.includes("N/A")) {
+                        return `<div class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 my-0.5 text-[9px]">${act}</div>`;
+                    } else {
+                        return `<div class="text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 my-0.5 text-[9px] font-medium flex items-center gap-1"><i class="fa-solid fa-check text-[8px]"></i> ${act}</div>`;
+                    }
+                }).join('');
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-semibold text-slate-500 whitespace-nowrap">${index + 1}</td>
+                    <td class="py-2.5 px-3 font-bold text-entelBlue whitespace-nowrap">${item.sitio}</td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">${getProcesoBadge(item.proceso)}</td>
+                    <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${item.proyecto}</td>
+                    <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${item.coordEstudio || 'Gloria Perez'}</td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">${getProviderBadge(item.proveedor)}</td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">${getStatusBadge(item.estatusEstudio)}</td>
+                    <td class="py-2.5 px-3 text-slate-700">${actHtml}</td>
+                    <td class="py-2.5 px-3 text-slate-600 font-medium whitespace-nowrap">${item.fechaSF || '-'}</td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">${getStatusBadge(item.statusFecha)}</td>
+                    <td class="py-2.5 px-3 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="openEditModal(${item.id})" class="text-slate-400 hover:text-blue-600 p-1 rounded transition" title="Editar este sitio">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteSite(${item.id})" class="text-slate-400 hover:text-red-600 p-1 rounded transition" title="Eliminar este sitio">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('showingCount').innerText = `Mostrando ${data.length} de ${sitiosData.length} registros`;
+        }
+
+        function deleteSite(id) {
+            if (confirm("¿Estás seguro de que deseas desistir y eliminar este estudio/sitio de la lista?")) {
+                sitiosData = sitiosData.filter(s => s.id !== id);
+                saveToLocalStorage();
+                filterData();
+            }
+        }
+
+        function openAddModal() {
+            populateSelects();
+            document.getElementById('editSiteId').value = '';
+            document.getElementById('modalTitle').innerText = 'Agregar Nuevo Sitio de Evaluación';
+            document.getElementById('submitBtn').innerText = 'Guardar Sitio';
+            document.getElementById('addForm').reset();
+            document.getElementById('newProceso').value = 'Evaluación estructural';
+            document.getElementById('newCoordEstudio').value = 'Gloria Perez';
+            
+            // Establecer la fecha actual por defecto en formato YYYY-MM-DD
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('newFechaSF').value = today;
+
+            document.getElementById('newTipoReforzamiento').value = 'N/A (No requiere)';
+            document.getElementById('newStatusFecha').value = 'N/A (No requiere)';
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function openEditModal(id) {
+            populateSelects();
+            const site = sitiosData.find(s => s.id === id);
+            if (!site) return;
+
+            document.getElementById('editSiteId').value = site.id;
+            document.getElementById('newSitio').value = site.sitio;
+            document.getElementById('newProceso').value = site.proceso || 'Evaluación estructural';
+            document.getElementById('newProyecto').value = site.proyecto;
+            document.getElementById('newCoordEstudio').value = site.coordEstudio || 'Gloria Perez';
+            document.getElementById('newProveedor').value = site.proveedor;
+            document.getElementById('newEstatusEstudio').value = site.estatusEstudio;
+            
+            let actString = Array.isArray(site.tipoReforzamiento) ? site.tipoReforzamiento.join(', ') : (site.tipoReforzamiento || 'N/A (No requiere)');
+            document.getElementById('newTipoReforzamiento').value = actString;
+            
+            if (site.fechaSF && site.fechaSF !== '-') {
+                let parts = site.fechaSF.split('/');
+                if (parts.length === 3) {
+                    document.getElementById('newFechaSF').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                } else {
+                    document.getElementById('newFechaSF').value = site.fechaSF;
+                }
+            } else {
+                document.getElementById('newFechaSF').value = '';
+            }
+
+            document.getElementById('newStatusFecha').value = site.statusFecha;
+
+            document.getElementById('modalTitle').innerText = 'Editar Sitio: ' + site.sitio;
+            document.getElementById('submitBtn').innerText = 'Actualizar Sitio';
+
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('flex');
+            document.getElementById('addModal').classList.add('hidden');
+        }
+
+        function openAddCatalogModal(type) {
+            currentCatalogType = type;
+            let title = '';
+            let label = '';
+            if (type === 'proveedor') {
+                title = 'Agregar Nuevo Proveedor';
+                label = 'Nombre del Proveedor';
+            } else if (type === 'estudioFilter') {
+                title = 'Agregar Nuevo Estatus de Proceso';
+                label = 'Nombre del Estatus';
+            }
+            document.getElementById('catalogModalTitle').innerText = title;
+            document.getElementById('catalogLabelName').innerText = label;
+            document.getElementById('catalogInputVal').value = '';
+            document.getElementById('catalogModal').classList.remove('hidden');
+            document.getElementById('catalogModal').classList.add('flex');
+        }
+
+        function closeCatalogModal() {
+            document.getElementById('catalogModal').classList.remove('flex');
+            document.getElementById('catalogModal').classList.add('hidden');
+        }
+
+        function openManageProjectsModal() {
+            renderProjectsListInModal();
+            document.getElementById('newProjectInput').value = '';
+            document.getElementById('projectsModal').classList.remove('hidden');
+            document.getElementById('projectsModal').classList.add('flex');
+        }
+
+        function closeManageProjectsModal() {
+            document.getElementById('projectsModal').classList.remove('flex');
+            document.getElementById('projectsModal').classList.add('hidden');
+        }
+
+        function renderProjectsListInModal() {
+            const container = document.getElementById('projectsListContainer');
+            container.innerHTML = '';
+            if (proyectosOpts.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400">No hay proyectos registrados.</p>`;
+                return;
+            }
+            proyectosOpts.forEach((proj, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 text-xs";
+                div.innerHTML = `
+                    <span class="font-medium text-slate-700 truncate mr-2" id="proj-text-${idx}">${proj}</span>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button onclick="editProjectName(${idx})" class="text-slate-400 hover:text-blue-600 p-1" title="Editar nombre de proyecto"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteProjectItem(${idx})" class="text-slate-400 hover:text-red-600 p-1" title="Eliminar proyecto"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addNewProjectFromModal() {
+            const val = document.getElementById('newProjectInput').value.trim();
+            if (!val) return;
+            if (!proyectosOpts.includes(val)) {
+                proyectosOpts.push(val);
+                saveToLocalStorage();
+                renderProjectsListInModal();
+                document.getElementById('newProjectInput').value = '';
+                filterData();
+            } else {
+                alert('Este proyecto ya existe.');
+            }
+        }
+
+        function editProjectName(idx) {
+            const oldName = proyectosOpts[idx];
+            const newName = prompt("Editar nombre del proyecto:", oldName);
+            if (newName !== null) {
+                const trimmed = newName.trim();
+                if (!trimmed) return;
+                if (proyectosOpts.includes(trimmed) && trimmed !== oldName) {
+                    alert("Ya existe un proyecto con ese nombre.");
+                    return;
+                }
+                // Actualizar lista de proyectos
+                proyectosOpts[idx] = trimmed;
+                // Actualizar los sitios que tengan asignado este proyecto
+                sitiosData.forEach(s => {
+                    if (s.proyecto === oldName) {
+                        s.proyecto = trimmed;
+                    }
+                });
+                saveToLocalStorage();
+                renderProjectsListInModal();
+                filterData();
+            }
+        }
+
+        function deleteProjectItem(idx) {
+            const projName = proyectosOpts[idx];
+            // Verificar si hay sitios usando este proyecto
+            const usedCount = sitiosData.filter(s => s.proyecto === projName).length;
+            if (usedCount > 0) {
+                alert(`No se puede eliminar el proyecto "${projName}" porque hay ${usedCount} sitio(s) asociado(s) a él.`);
+                return;
+            }
+            if (confirm(`¿Estás seguro de eliminar el proyecto "${projName}"?`)) {
+                proyectosOpts.splice(idx, 1);
+                saveToLocalStorage();
+                renderProjectsListInModal();
+                filterData();
+            }
+        }
+
+        function saveCatalogItem(event) {
+            event.preventDefault();
+            const val = document.getElementById('catalogInputVal').value.trim();
+            if (!val) return;
+
+            if (currentCatalogType === 'proveedor') {
+                if (!proveedoresOpts.includes(val)) {
+                    proveedoresOpts.push(val);
+                } else {
+                    alert('Este proveedor ya existe.');
+                    return;
+                }
+            } else if (currentCatalogType === 'estudioFilter') {
+                if (!estatusEstudioOpts.includes(val)) {
+                    estatusEstudioOpts.push(val);
+                } else {
+                    alert('Este estatus ya existe.');
+                    return;
+                }
+            }
+
+            saveToLocalStorage();
+            filterData();
+            closeCatalogModal();
+        }
+
+        function saveSite(event) {
+            event.preventDefault();
+            const editId = document.getElementById('editSiteId').value;
+            const estatusEstudioVal = document.getElementById('newEstatusEstudio').value;
+            const statusFechaVal = document.getElementById('newStatusFecha').value;
+            
+            const rawActs = document.getElementById('newTipoReforzamiento').value;
+            const actsArray = rawActs.split(/,|\n/).map(a => a.trim()).filter(a => a.length > 0);
+            const finalActs = actsArray.length > 0 ? actsArray : ['N/A (No requiere)'];
+
+            let rawDateVal = document.getElementById('newFechaSF').value;
+            let formattedDate = '-';
+            if (rawDateVal) {
+                let p = rawDateVal.split('-');
+                if (p.length === 3) {
+                    formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+                }
+            }
+
+            if (editId) {
+                const site = sitiosData.find(s => s.id == editId);
+                if (site) {
+                    site.sitio = document.getElementById('newSitio').value.trim();
+                    site.proceso = document.getElementById('newProceso').value;
+                    site.proyecto = document.getElementById('newProyecto').value;
+                    site.coordEstudio = document.getElementById('newCoordEstudio').value.trim();
+                    site.proveedor = document.getElementById('newProveedor').value;
+                    site.estatusEstudio = estatusEstudioVal;
+                    site.tipoReforzamiento = finalActs;
+                    site.fechaSF = formattedDate;
+                    site.statusFecha = statusFechaVal;
+                }
+            } else {
+                const newId = sitiosData.length > 0 ? Math.max(...sitiosData.map(s => s.id)) + 1 : 1;
+                const newSiteObj = {
+                    id: newId,
+                    sitio: document.getElementById('newSitio').value.trim(),
+                    proceso: document.getElementById('newProceso').value,
+                    proyecto: document.getElementById('newProyecto').value,
+                    coordEstudio: document.getElementById('newCoordEstudio').value.trim(),
+                    proveedor: document.getElementById('newProveedor').value,
+                    estatusEstudio: estatusEstudioVal,
+                    tipoReforzamiento: finalActs,
+                    fechaSF: formattedDate,
+                    statusFecha: statusFechaVal
+                };
+                sitiosData.push(newSiteObj);
+            }
+
+            saveToLocalStorage();
+            filterData();
+            closeAddModal();
+            document.getElementById('addForm').reset();
+        }
+
+        function resetData() {
+            if (confirm("¿Deseas restaurar la lista a los datos originales y catálogos iniciales?")) {
+                localStorage.removeItem('entel_sitios_v26');
+                localStorage.removeItem('entel_proveedores_v26');
+                localStorage.removeItem('entel_proyectos_v26');
+                localStorage.removeItem('entel_estatusEstudio_v26');
+                sitiosData = JSON.parse(JSON.stringify(initialData));
+                proveedoresOpts = ["Pendiente de asignación", "SAVA", "INCOBECH", "ARISTOS", "TAE"];
+                proyectosOpts = ["REGULARIZACIÓN DE LICENCIAS 2026", "CRA 2026", "ENTEL G2 2026"];
+                estatusEstudioOpts = ["No requiere reforzamiento", "Requiere reforzamiento", "En evaluación"];
+                saveToLocalStorage();
+                filterData();
+            }
+        }
+
+        function filterData() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const procesoVal = document.getElementById('procesoFilter').value;
+            const proyectoVal = document.getElementById('proyectoFilter').value;
+            const providerVal = document.getElementById('providerFilter').value;
+            const estudioVal = document.getElementById('estudioFilter').value;
+            const statusVal = document.getElementById('statusFilter').value;
+
+            const filtered = sitiosData.filter(item => {
+                const matchSearch = item.sitio.toLowerCase().includes(searchVal);
+                const matchProceso = procesoVal === "" || item.proceso === procesoVal;
+                const matchProyecto = proyectoVal === "" || item.proyecto === proyectoVal;
+                const matchProvider = providerVal === "" || item.proveedor === providerVal;
+                const matchEstudio = estudioVal === "" || item.estatusEstudio === estudioVal;
+                const matchStatus = statusVal === "" || item.statusFecha === statusVal;
+                return matchSearch && matchProceso && matchProyecto && matchProvider && matchEstudio && matchStatus;
+            });
+
+            renderTable(filtered);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterData);
+        document.getElementById('procesoFilter').addEventListener('change', filterData);
+        document.getElementById('proyectoFilter').addEventListener('change', filterData);
+        document.getElementById('providerFilter').addEventListener('change', filterData);
+        document.getElementById('estudioFilter').addEventListener('change', filterData);
+        document.getElementById('statusFilter').addEventListener('change', filterData);
+
+        // Inicialización
+        saveToLocalStorage();
+        filterData();
+    </script>
+</body>
+</html>
